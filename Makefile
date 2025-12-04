@@ -258,6 +258,98 @@ clean-all: clean
 .clean-build:
 	rm -rf *.spec dist build
 
+# COMPLETIONS #################################################################
+
+COMPLETIONS_DIR := completions
+BASH_COMPLETION := $(COMPLETIONS_DIR)/doorstop.bash
+ZSH_COMPLETION := $(COMPLETIONS_DIR)/_doorstop
+FISH_COMPLETION := $(COMPLETIONS_DIR)/doorstop.fish
+
+.PHONY: completions
+completions: $(BASH_COMPLETION) $(ZSH_COMPLETION) $(FISH_COMPLETION) ## Generate shell completion scripts
+
+$(BASH_COMPLETION) $(ZSH_COMPLETION) $(FISH_COMPLETION): bin/generate-completions
+	@ mkdir -p $(COMPLETIONS_DIR)
+	python3 bin/generate-completions --shell all --output-dir $(COMPLETIONS_DIR)
+
+.PHONY: install-completions
+install-completions: completions ## Install shell completions for the current shell
+	@ SHELL_NAME=$$(basename "$$SHELL"); \
+	case "$$SHELL_NAME" in \
+		bash) \
+			COMPLETION_DIR="$${HOME}/.local/share/bash-completion/completions"; \
+			mkdir -p "$${COMPLETION_DIR}"; \
+			cp $(BASH_COMPLETION) "$${COMPLETION_DIR}/doorstop"; \
+			echo "Installed bash completion to $${COMPLETION_DIR}/doorstop"; \
+			echo "You may need to restart your shell or run: source $${COMPLETION_DIR}/doorstop"; \
+			;; \
+		zsh) \
+			COMPLETION_DIR="$${HOME}/.zsh/completions"; \
+			mkdir -p "$${COMPLETION_DIR}"; \
+			cp $(ZSH_COMPLETION) "$${COMPLETION_DIR}/_doorstop"; \
+			echo "Installed zsh completion to $${COMPLETION_DIR}/_doorstop"; \
+			echo "Add the following to your ~/.zshrc if not already present:"; \
+			echo "  fpath=($${COMPLETION_DIR} \$$fpath)"; \
+			echo "  autoload -U compinit && compinit"; \
+			;; \
+		fish) \
+			COMPLETION_DIR="$${HOME}/.config/fish/completions"; \
+			mkdir -p "$${COMPLETION_DIR}"; \
+			cp $(FISH_COMPLETION) "$${COMPLETION_DIR}/doorstop.fish"; \
+			echo "Installed fish completion to $${COMPLETION_DIR}/doorstop.fish"; \
+			;; \
+		*) \
+			echo "Unknown shell: $$SHELL_NAME"; \
+			echo "Available completions:"; \
+			echo "  bash: $(BASH_COMPLETION)"; \
+			echo "  zsh:  $(ZSH_COMPLETION)"; \
+			echo "  fish: $(FISH_COMPLETION)"; \
+			echo "Please install manually to the appropriate location for your shell."; \
+			exit 1; \
+			;; \
+	esac
+
+.PHONY: uninstall-completions
+uninstall-completions: ## Uninstall shell completions for the current shell
+	@ SHELL_NAME=$$(basename "$$SHELL"); \
+	case "$$SHELL_NAME" in \
+		bash) \
+			COMPLETION_FILE="$${HOME}/.local/share/bash-completion/completions/doorstop"; \
+			if [ -f "$${COMPLETION_FILE}" ]; then \
+				rm -f "$${COMPLETION_FILE}"; \
+				echo "Uninstalled bash completion from $${COMPLETION_FILE}"; \
+			else \
+				echo "Bash completion not found at $${COMPLETION_FILE}"; \
+			fi \
+			;; \
+		zsh) \
+			COMPLETION_FILE="$${HOME}/.zsh/completions/_doorstop"; \
+			if [ -f "$${COMPLETION_FILE}" ]; then \
+				rm -f "$${COMPLETION_FILE}"; \
+				echo "Uninstalled zsh completion from $${COMPLETION_FILE}"; \
+			else \
+				echo "Zsh completion not found at $${COMPLETION_FILE}"; \
+			fi \
+			;; \
+		fish) \
+			COMPLETION_FILE="$${HOME}/.config/fish/completions/doorstop.fish"; \
+			if [ -f "$${COMPLETION_FILE}" ]; then \
+				rm -f "$${COMPLETION_FILE}"; \
+				echo "Uninstalled fish completion from $${COMPLETION_FILE}"; \
+			else \
+				echo "Fish completion not found at $${COMPLETION_FILE}"; \
+			fi \
+			;; \
+		*) \
+			echo "Unknown shell: $$SHELL_NAME"; \
+			echo "Please uninstall manually:"; \
+			echo "  bash: $${HOME}/.local/share/bash-completion/completions/doorstop"; \
+			echo "  zsh:  $${HOME}/.zsh/completions/_doorstop"; \
+			echo "  fish: $${HOME}/.config/fish/completions/doorstop.fish"; \
+			exit 1; \
+			;; \
+	esac
+
 # HELP ########################################################################
 
 .PHONY: help
